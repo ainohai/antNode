@@ -2,7 +2,8 @@ import { ConfigType } from "@ainohai/antColony/lib/cjs/types/types";
 import { Producer, Consumer } from "kafkajs";
 
 export type MyMessage = {
-    msg: string
+    key: string,
+    value: string
 }
 
 export abstract class KafkaProducer implements MessageInterface {

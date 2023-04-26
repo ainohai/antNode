@@ -5,16 +5,18 @@ import { KafkaConsumer, KafkaMsgKey } from "./types";
 export class TaskConsumer extends KafkaConsumer {
 
   private topic: string;
+  private handlingCB: (message: KafkaMessage) => Promise<void>;
 
-  constructor(kafka: Kafka, groupId: string, topic: string) {
-    super(kafka.consumer({ groupId: groupId }));
+  constructor(kafka: Kafka, groupId: string, topic: string, handlingCb: (message: KafkaMessage) => Promise<void>) {
+    super(kafka.consumer({ groupId: groupId, readUncommitted: false }));
     this.topic = topic;
+    this.handlingCB = handlingCb;
   }
 
   async connect(): Promise<void> {
     try {
       await this.consumer.connect();
-      await this.consumer.subscribe({ topic: this.topic });
+      await this.consumer.subscribe({ topic: this.topic, fromBeginning: false });
       return this.consumer.run({ eachMessage: async (payload: any) => this.handle(payload) });
     } catch (e) {
       return console.log(`Can't connect ${e}`);
@@ -37,35 +39,4 @@ export class TaskConsumer extends KafkaConsumer {
       return console.log(`Error on disconnect ${e}`);
     }
   }
-
-  private handlingCB(message: KafkaMessage) {
-
-    if (message.key?.toString() === KafkaMsgKey.RUN_SIMULATION) {
-      console.log(`Received message to run simulation, ${message.key?.toString()}: ${message.value?.toString()}`);
-    }
-
-    console.log(`Received message, not going to handle ${message.key?.toString()}: ${message.value?.toString()}`);
-    return Promise.resolve();
-  }
 }
-
-
-
-
-/*const consumer = kafka.consumer({ groupId: 'test-consumer-group' });
-
-const consume = async() => {
-await consumer.connect()
-await consumer.subscribe({ topic: 'simulation-events', fromBeginning: true })
-
-await consumer.run({
-  eachMessage: async ({ topic, partition, message }) => {
-    console.log({
-      value: message.value?.toString() ?? "No val here",
-    })
-  },
-});
-}
-consume();
-
-*/
